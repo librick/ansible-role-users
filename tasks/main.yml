@@ -66,7 +66,7 @@
 
 - name: Ensure that users_maintenance_user user is created.
   ansible.builtin.user:
-    create_home: true
+    create_home: false
     name: "{{ users_maintenance_user }}"
     password: "!" # See docs; creates account w/ locked/disabled password.
     password_lock: true # Ensures the password is locked; SSH login still allowed.

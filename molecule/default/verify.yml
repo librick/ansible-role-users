@@ -50,3 +50,16 @@
   - name: Assert that user wilber belongs to group wilber.
     ansible.builtin.assert:
       that: "{{ 'wilber' in ansible_facts.getent_group.wilber }}"
+
+  - name: Stat /home/wilber directory (which should not exist).
+    ansible.builtin.stat:
+      path: /home/wilber
+    become: true
+    become_user: root
+    register: r_stat_wilber_home
+
+  - name: Assert that user wilber does not have a home directory.
+    ansible.builtin.assert:
+      that:
+        - r_stat_wilber_home.stat.exists is defined
+        - not r_stat_wilber_home.stat.exists
