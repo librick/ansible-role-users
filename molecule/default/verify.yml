@@ -27,27 +27,27 @@
     become: true
     become_user: root
 
-  - name: Assert that user suzanne belongs to group templars.
+  - name: Assert user suzanne belongs to group templars.
     ansible.builtin.assert:
       that: "{{ 'suzanne' in ansible_facts.getent_group.templars }}"
 
-  - name: Assert that user suzanne belongs to group freemasons.
+  - name: Assert user suzanne belongs to group freemasons.
     ansible.builtin.assert:
       that: "{{ 'suzanne' in ansible_facts.getent_group.freemasons }}"
 
-  - name: Assert that user suzanne belongs to group suzanne.
+  - name: Assert user suzanne belongs to group suzanne.
     ansible.builtin.assert:
       that: "{{ 'suzanne' in ansible_facts.getent_group.suzanne }}"
 
-  - name: Assert that user wilber belongs to group sudo.
+  - name: Assert user wilber belongs to group sudo.
     ansible.builtin.assert:
       that: "{{ 'wilber' in ansible_facts.getent_group.sudo }}"
 
-  - name: Assert that user wilber belongs to group goldendawn.
+  - name: Assert user wilber belongs to group goldendawn.
     ansible.builtin.assert:
       that: "{{ 'wilber' in ansible_facts.getent_group.goldendawn }}"
 
-  - name: Assert that user wilber belongs to group wilber.
+  - name: Assert user wilber belongs to group wilber.
     ansible.builtin.assert:
       that: "{{ 'wilber' in ansible_facts.getent_group.wilber }}"
 
@@ -58,8 +58,39 @@
     become_user: root
     register: r_stat_wilber_home
 
-  - name: Assert that user wilber does not have a home directory.
+  - name: Assert user wilber does not have a home directory.
     ansible.builtin.assert:
       that:
         - r_stat_wilber_home.stat.exists is defined
         - not r_stat_wilber_home.stat.exists
+
+  - name: Get users.
+    ansible.builtin.getent:
+      database: passwd
+    become: true
+    become_user: root
+
+  - name: Assert suzanne passwd entries are correct.
+    ansible.builtin.assert:
+      that:
+        - ansible_facts.getent_passwd.suzanne[0] == 'x'
+        - ansible_facts.getent_passwd.suzanne[4] == '/home/suzanne'
+        - ansible_facts.getent_passwd.suzanne[5] == '/bin/bash'
+
+  - name: Assert wilber passwd entries are correct.
+    ansible.builtin.assert:
+      that:
+        - ansible_facts.getent_passwd.wilber[0] == 'x'
+        - ansible_facts.getent_passwd.wilber[4] == '/home/wilber'
+        - ansible_facts.getent_passwd.wilber[5] == '/bin/bash'
+
+  - name: Assert suzanne user id >= 1000.
+    ansible.builtin.assert:
+      that:
+        - (ansible_facts.getent_passwd.suzanne[1] | int) >= 1000
+
+  - name: Assert wilber user id in range (0,1000).
+    ansible.builtin.assert:
+      that:
+        - (ansible_facts.getent_passwd.wilber[1] | int) > 0
+        - (ansible_facts.getent_passwd.wilber[1] | int) < 1000
