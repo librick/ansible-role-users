@@ -1,0 +1,52 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Stat /home/suzanne directory.
+    ansible.builtin.stat:
+      path: "/home/suzanne"
+    register: r_stat_suzanne_home
+  - name: Assert /home/suzanne directory exists with correct ownership.
+    ansible.builtin.assert:
+      that:
+        - r_stat_suzanne_home.stat.exists is defined
+        - r_stat_suzanne_home.stat.exists == true
+        - r_stat_suzanne_home.stat.isdir is defined
+        - r_stat_suzanne_home.stat.isdir == true
+        - r_stat_suzanne_home.stat.gr_name is defined
+        - r_stat_suzanne_home.stat.gr_name == "suzanne"
+        - r_stat_suzanne_home.stat.pw_name is defined
+        - r_stat_suzanne_home.stat.pw_name == "suzanne"
+
+  - name: Get groups.
+    ansible.builtin.getent:
+      database: group
+      split: ':'
+    become: true
+    become_user: root
+
+  - name: Assert that user suzanne belongs to group templars.
+    ansible.builtin.assert:
+      that: "{{ 'suzanne' in ansible_facts.getent_group.templars }}"
+
+  - name: Assert that user suzanne belongs to group freemasons.
+    ansible.builtin.assert:
+      that: "{{ 'suzanne' in ansible_facts.getent_group.freemasons }}"
+
+  - name: Assert that user suzanne belongs to group suzanne.
+    ansible.builtin.assert:
+      that: "{{ 'suzanne' in ansible_facts.getent_group.suzanne }}"
+
+  - name: Assert that user wilber belongs to group sudo.
+    ansible.builtin.assert:
+      that: "{{ 'wilber' in ansible_facts.getent_group.sudo }}"
+
+  - name: Assert that user wilber belongs to group goldendawn.
+    ansible.builtin.assert:
+      that: "{{ 'wilber' in ansible_facts.getent_group.goldendawn }}"
+
+  - name: Assert that user wilber belongs to group wilber.
+    ansible.builtin.assert:
+      that: "{{ 'wilber' in ansible_facts.getent_group.wilber }}"

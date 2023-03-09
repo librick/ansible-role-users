@@ -1,0 +1,14 @@
+# The username of the user who will use this machine regularly
+users_regular_user: ""
+users_regular_user_password: ""
+users_regular_user_groups:
+  - bluetooth
+  - docker
+  - netdev
+  - sudo
+  - users
+
+# The username of the user to be used by Ansible for maintenance
+users_maintenance_user: ""
+users_maintenance_user_groups:
+  - sudo

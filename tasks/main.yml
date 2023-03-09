@@ -1,0 +1,93 @@
+---
+# The acl apt package includes the setfacl binary
+# which is required by Ansible to handle permissions when using
+# become_user with non-root users.
+# See: https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_privilege_escalation.html#risks-of-becoming-an-unprivileged-user.
+# See: https://packages.debian.org/sid/acl
+- name: Ensure acl apt package is installed.
+  ansible.builtin.apt:
+    name: acl
+    state: present
+  become: true
+  become_user: root
+
+# When specifying a password for a user, we first hash it.
+# Ansible complains with a deprecation warning:
+# > Encryption using the Python crypt module is deprecated. 
+# > The Python crypt module is deprecated and will be removed from Python 3.13. 
+# > Install the passlib library for continued encryption functionality. This 
+# > feature will be removed in version 2.17.
+# So we ensure that python3-passlib is installed.
+- name: Ensure python3-passlib apt package is installed.
+  ansible.builtin.apt:
+    name: python3-passlib
+    state: present
+  become: true
+  become_user: root
+
+- name: Assert that users_regular_user is not root.
+  ansible.builtin.assert:
+    that:
+      - "\"{{ users_regular_user }}\" is not match(\"root\")"
+
+- name: Assert that users_maintenance_user is not root.
+  ansible.builtin.assert:
+    that:
+      - "\"{{ users_maintenance_user }}\" is not match(\"root\")"
+
+- name: Ensure users_regular_user groups are created.
+  ansible.builtin.group:
+    name: "{{ item }}"
+  become: true
+  become_user: root
+  loop: "{{ (users_regular_user_groups | default([])) + [users_regular_user] }}"
+
+- name: Ensure that users_regular_user user is created.
+  ansible.builtin.user:
+    create_home: true
+    name: "{{ users_regular_user }}"
+    password: "{{ users_regular_user_password | password_hash('sha512') }}"
+    group: "{{ users_regular_user }}"
+    # Ensure that the user always belongs to a group of the same name
+    groups: "{{ (users_regular_user_groups | default([])) + [users_regular_user] }}"
+    append: true # Use append such that this role can be rerun without losing groups
+    shell: "/bin/bash"
+    update_password: on_create
+  become: true
+  become_user: root
+  failed_when: users_regular_user_password == ""
+
+- name: Ensure users_maintenance_user groups are created.
+  ansible.builtin.group:
+    name: "{{ item }}"
+  become: true
+  become_user: root
+  loop: "{{ (users_maintenance_user_groups | default([])) + [users_maintenance_user] }}"
+
+- name: Ensure that users_maintenance_user user is created.
+  ansible.builtin.user:
+    create_home: true
+    name: "{{ users_maintenance_user }}"
+    password: "!" # See docs; creates account w/ locked/disabled password.
+    password_lock: true # Ensures the password is locked; SSH login still allowed.
+    group: "{{ users_maintenance_user }}"
+    # Ensure that the user always belongs to a group of the same name
+    groups: "{{ (users_maintenance_user_groups | default([])) + [users_maintenance_user] }}"
+    append: true # Use append such that this role can be rerun without losing groups
+    shell: "/bin/bash"
+    system: true # Create the user as a system account; i.e, hidden on login screens
+    update_password: on_create
+  become: true
+  become_user: root
+
+- name: Ensure .bash_profile exists for users.
+  ansible.builtin.template:
+    dest: "/home/{{ item }}/.bash_profile"
+    group: "{{ item }}"
+    owner: "{{ item }}"
+    mode: 0644
+    src: "bash_profile.j2"
+  with_items:
+    - "{{ users_regular_user }}"
+  become: true
+  become_user: "{{ item }}"
